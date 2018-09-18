@@ -137,9 +137,18 @@ struct Call<Req,Rsp> {
 /// *NOTE*: Services are assumed to be inaccessable and terminated at
 /// the point when the last copy of their handle is dropped.
 ///
-#[derive(Debug,Clone)]
+#[derive(Debug)]
 pub struct Handle<Req,Rsp> {
     inner: mpsc::UnboundedSender<Call<Req,Rsp>>,
+}
+
+
+impl<Req,Rsp> Clone for Handle<Req,Rsp> {
+
+    fn clone(&self) -> Self {
+        let inner = self.inner.clone();
+        Self { inner }
+    }
 }
 
 
