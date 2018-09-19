@@ -83,13 +83,14 @@ pub fn spawn<Srv,Req,Rsp>(mut service: Srv) -> Handle<Req,Rsp>
     let handle = Handle::new(tx);
     let serve = move |call: Call<_,_>| {
         let Call { req, tx } = call;
-        service.call(req).and_then(move |rsp| {
+        let work = service.call(req).and_then(move |rsp| {
             let _ = tx.send(rsp);
             Ok(())
-        })
+        });
+        tokio::spawn(work);
     };
-    let work = rx.map(serve).buffer_unordered(64)
-        .for_each(|()| Ok(()));
+
+    let work = rx.map(serve).for_each(|()| Ok(()));
     tokio::spawn(work);
     handle
 }
