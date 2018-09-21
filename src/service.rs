@@ -26,22 +26,18 @@
 //!
 //!
 //! # fn main() {
-//! // `spawn` must be called within an event-loop, so we
-//! // wrap out setup logic in a closure to defer execution.
-//! let spawn_map = || {
-//!     let mut map = HashMap::new();
-//!     let handle = service::spawn(move |op| {
-//!         match op {
-//!             Op::Get(key) => Ok(map.get(key).cloned()),
-//!             Op::Set(key,val) => Ok(map.insert(key,val)),
-//!             Op::Del(key) => Ok(map.remove(key)),
-//!         }
-//!     });
-//!     Ok(handle)
-//! };
 //!
-//! // Lazily spawn the map, and then fire off some requests.
-//! let make_requests = future::lazy(spawn_map).and_then(|handle| {
+//! let mut map = HashMap::new();
+//!
+//! let spawn = service::spawn(move |op| {
+//!     match op {
+//!         Op::Get(key) => Ok(map.get(key).cloned()),
+//!         Op::Set(key,val) => Ok(map.insert(key,val)),
+//!         Op::Del(key) => Ok(map.remove(key)),
+//!     }
+//! }).map_err(|e| e.into());
+//!
+//! let work = spawn.and_then(|handle| {
 //!
 //!     let requests = vec![
 //!         handle.call(Op::Set("hello","world")),
@@ -56,7 +52,7 @@
 //!     })
 //! });
 //!
-//! tokio::run(make_requests);
+//! tokio::run(work);
 //! # }
 //!
 //! ```
@@ -65,6 +61,7 @@ use tokio_channel::{oneshot,mpsc};
 use tokio::prelude::*;
 use tokio;
 use std::{fmt,error};
+use never::Never;
 
 
 /// Spawn a service to the event-loop.
@@ -72,11 +69,19 @@ use std::{fmt,error};
 /// Spawns a threadsafe service to the event-loop, returning a
 /// cloneable/sendable handle. See module-level docs for example usage.
 ///
-/// ## panics
+pub fn spawn<Srv,Req,Rsp>(service: Srv) -> impl Future<Item=Handle<Req,Rsp>,Error=Never>
+        where Srv: Service<Req,Rsp,Error=()> + Send + 'static, Srv::Future: Send + 'static,
+              Req: Send + 'static, Rsp: Send + 'static {
+    future::lazy(move || Ok(spawn_now(service)))
+}
+
+
+/// Variant of `spawn` which returns immediately.
 ///
-/// This function will panic if called outside of an event-loop.
+/// This function panics outside of a running event-loop, so prefer
+/// using `spawn` as it is harder to misuse.
 ///
-pub fn spawn<Srv,Req,Rsp>(mut service: Srv) -> Handle<Req,Rsp>
+pub fn spawn_now<Srv,Req,Rsp>(mut service: Srv) -> Handle<Req,Rsp>
         where Srv: Service<Req,Rsp,Error=()> + Send + 'static, Srv::Future: Send + 'static,
               Req: Send + 'static, Rsp: Send + 'static {
     let (tx,rx) = mpsc::unbounded();
