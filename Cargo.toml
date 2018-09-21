@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
 
 [dependencies]
-tokio-channel = "0.1.0"
-tokio = "0.1.8"
+tokio-channel = "0.1"
+tokio = "0.1"
 
