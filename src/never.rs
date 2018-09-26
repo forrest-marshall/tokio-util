@@ -5,6 +5,7 @@ use std::{fmt,error};
 ///
 #[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,PartialOrd,Ord)]
 #[cfg_attr(feature = "serde-impls",derive(Serialize,Deserialize))]
+#[cfg_attr(feature = "serde-impls",serde(untagged))]
 pub enum Never { }
 
 
