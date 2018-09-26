@@ -4,6 +4,7 @@ use std::{fmt,error};
 /// I swear, this never happens.
 ///
 #[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,PartialOrd,Ord)]
+#[cfg_attr(feature = "serde-impls",derive(Serialize,Deserialize))]
 pub enum Never { }
 
 
@@ -42,6 +43,7 @@ pub enum Never { }
 ///     // other work which might actually fail...
 ///     Ok(())
 /// }
+///
 ///
 /// # fn main() {
 /// #     do_stuff().unwrap();
